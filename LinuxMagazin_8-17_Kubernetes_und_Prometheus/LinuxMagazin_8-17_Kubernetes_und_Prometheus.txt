@@ -9,6 +9,8 @@ TODO: umformulieren
 TODO: umformulieren
 @L:Prometheus ist quasi ein Cousin des Container-Orchestrators Kubernetes: während ersteres von Googles Cluster-System Borg abstammt, hat Prometheus seine Wurzeln bei Borgmon, dem Monitoring-Tool für Borg. Matt Proud und Julius Volz, ehemalige Site Reliability Engineers (SRE) von Google, starteten das Projekt 2012 bei Soundcloud. Ab 2014 begannen andere Unternehmen, es zu nutzen und 2015 wurde es schließlich "veröffentlicht", obwohl es schon seit jeher als Open-Source Projekt bei GitHub entwickelt worden war. Prometheus wird heute unter dem Dach der Cloud Native Computing Foundation (CNCF) weiterentwickelt, neben so prominenten Projekten wie Kubernetes, containerd, rkt oder gRPC. 
 
+Voraussetzungen: minikube, bash und Internetzugang, um die Docker-Images zu laden.
+
 TODO: Kasten minikube
 TODO: zugeschnitten auf miniukube, deshalb ausgeklammert: storage, ingress, rbac, node-scheduling
 
@@ -84,6 +86,32 @@ prometheus-3712294821-kt26w           1/1       Running   0          25m
 
 - Weitere Komponenten: Alertmanager etc. nur kurz anschneiden
 
+11:57 $ kubectl create -f 08_grafana-deployment.yml
+deployment "grafana" created
+
+11:57 $ kubectl create -f 09_grafana-service.yml
+service "grafana" created
+
+minikube service grafana --namespace=monitoring
+Opening kubernetes service monitoring/grafana in default browser...
+
+Login als admin:admin
+TODO: datasource erstellen mit:
+$ minikube service prometheus --namespace=monitoring --url
+http://192.168.99.100:30576
+Screenshot
+
+Importieren der Dashboard-URLs siehe unten
+https://grafana.com/dashboards/22
+https://grafana.com/dashboards/737
+https://grafana.com/dashboards/741
+https://grafana.com/dashboards/747 ???
+https://grafana.com/dashboards/1471 ???
+
+Problem beschreiben: gute Grafana-Dashboards zu finden. Meist müssen sie noch selbst angepasst werden.
+
+
+
 TODO: deployment einer Beispiel-App, die sofort in Prometheus und Grafana erscheint
 TODO: Oder stattdessen die annotation nochmal erklären, ggf. detailliert, d.h. wenn eine app prom-metriken bereitstellt kann sie direkt instrumentiert werden
 
@@ -102,7 +130,7 @@ https://github.com/kubernetes/minikube/
 https://grafana.com/
 https://grafana.com/dashboards
 https://grafana.com/dashboards/22 - Node exporter single server
-https://grafana.com/dashboards/315
+NEIN https://grafana.com/dashboards/315
 https://github.com/kubernetes/kube-state-metrics
 https://grafana.com/dashboards/747 - Kubernetes pod metrics
 https://grafana.com/dashboards/741 - Kubernetes deployment metrics
