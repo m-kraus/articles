@@ -1,0 +1,324 @@
+@D:Kubernetes Monitoring mit Prometheus
+@T:Das Traumpaar
+
+TODO: umformulieren
+@V:Prometheus hat sich in Cloud Native Umgebungen zu einem unverzichtbaren Werkzeug entwickelt: mit der zunehmenden Verbreitung von containerbasierten Microservices - ob in der Cloud oder im eigenen Rechenzentrum, kommen klassische Monitoring-Tools wie Nagios und Icinga zunehmend an ihre Grenzen. Sie sind schlicht nicht dafür ausgelegt, derart kurzlebige Objekte wie Container zu überwachen. Hier kann Prometheus mit seinem auf Zeitreihen-Daten basierenden Ansatz in die Bresche springen.
+
+@A:Michael Kraus
+
+TODO: umformulieren
+@L:Prometheus ist quasi ein Cousin des Container-Orchestrators Kubernetes: während ersteres von Googles Cluster-System Borg abstammt, hat Prometheus seine Wurzeln bei Borgmon, dem Monitoring-Tool für Borg. Matt Proud und Julius Volz, ehemalige Site Reliability Engineers (SRE) von Google, starteten das Projekt 2012 bei Soundcloud. Ab 2014 begannen andere Unternehmen, es zu nutzen und 2015 wurde es schließlich "veröffentlicht", obwohl es schon seit jeher als Open-Source Projekt bei GitHub entwickelt worden war. Prometheus wird heute unter dem Dach der Cloud Native Computing Foundation (CNCF) weiterentwickelt, neben so prominenten Projekten wie Kubernetes, containerd, rkt oder gRPC. 
+
+TODO: Kasten minikube
+TODO: zugeschnitten auf miniukube, deshalb ausgeklammert: storage, ingress, rbac, node-scheduling
+
+TODO: Label als Hierarchie
+Beispiel für Kubernetes labels, annotations etc.
+
+http_requests_total{instance="web-1", path="/index", status="500", method="GET"}
+http_requests_total{instance="web-3", path="/index", status="200", method="GET"}
+#metrics x #values(instance) x #values(path) x #values(status) x #values(method)
+millions of time series
+
+Abfragesprache schon im Artikel vorher.
+
+TODO: Deployment von Prometheus
+- Prometheus selbst: configmap, relabeling, service discovery
+- Knoten mit node_exporter: DaemonSet, annotation, permissions und freigaben
+- node_exporter wird mit scrape: true schon selbständig gefunden, wenn node dazukommt, dank DaemonSet
+- Grafana mit guten Beispiel-Dashboards(?) deployen
+- dashoboard/22
+- erweiterete prometheus scrape config: dashboard/315
+- kube-state-metrics, dashboard/747 und dashboard/741
+
+kubectl create -f 01_monitoring-namespace.yml
+namespace "monitoring" created
+kubectl create -f 02_prometheus-configmap.yml
+configmap "prometheus-configmap" created
+
+Die ConfigMap anhand des offiziellen Beispiels von https://github.com/prometheus/prometheus/blob/master/documentation/examples/prometheus-kubernetes.yml
+
+kubectl create -f 03_prometheus-deployment.yml
+deployment "prometheus" created
+
+10:50 $ kubectl get pods --namespace=monitoring
+NAME                          READY     STATUS    RESTARTS   AGE
+prometheus-3460145364-r30gf   1/1       Running   0          1m
+
+kubectl create -f 04_prometheus-service.yml
+service "prometheus" created
+
+10:52 $ kubectl get service --namespace=monitoring
+NAME         CLUSTER-IP   EXTERNAL-IP   PORT(S)          AGE
+prometheus   10.0.0.221   <pending>     9090:31244/TCP   1m
+
+Pending wegen minikube
+
+0:53 $ minikube service prometheus --namespace=monitoring
+Opening kubernetes service monitoring/prometheus in default browser...
+
+TODO: screenshot mit vielen Metriken
+
+kubectl create -f 05_node-exporter.yml
+daemonset "node-exporter" created
+
+ kubectl get pods --namespace=monitoring
+NAME                          READY     STATUS    RESTARTS   AGE
+node-exporter-v0pl0           1/1       Running   0          45s
+prometheus-3712294821-kt26w   1/1       Running   0          4m
+
+daemonset erklären hier
+annotation erklären hier
+
+screenshot mit zusätzlichen node_exporter metriken hier
+
+kubectl create -f 06_kube-state-metrics-deployment.yml
+deployment "kube-state-metrics" created
+
+kubectl get pods --namespace=monitoring
+NAME                                  READY     STATUS    RESTARTS   AGE
+kube-state-metrics-3103338684-k1959   1/1       Running   0          4m
+node-exporter-v0pl0                   1/1       Running   0          21m
+prometheus-3712294821-kt26w           1/1       Running   0          25m
+
+
+- Weitere Komponenten: Alertmanager etc. nur kurz anschneiden
+
+TODO: deployment einer Beispiel-App, die sofort in Prometheus und Grafana erscheint
+TODO: Oder stattdessen die annotation nochmal erklären, ggf. detailliert, d.h. wenn eine app prom-metriken bereitstellt kann sie direkt instrumentiert werden
+
+Ausblick auf 2.0 wegen Kardinalität
+Ausblick auf RBAC: https://github.com/prometheus/prometheus/blob/master/documentation/examples/rbac-setup.yml
+TODO: Openshift als Vergleich vielleicht, mit eigenem Kasten für minishift
+
+Ausblick auf https://github.com/coreos/prometheus-operator
+
+LINKS:
+https://prometheus.io/
+https://github.com/prometheus/prometheus/blob/master/documentation/examples/prometheus-kubernetes.yml
+
+https://github.com/prometheus/node_exporter
+https://github.com/kubernetes/minikube/
+https://grafana.com/
+https://grafana.com/dashboards
+https://grafana.com/dashboards/22 - Node exporter single server
+https://grafana.com/dashboards/315
+https://github.com/kubernetes/kube-state-metrics
+https://grafana.com/dashboards/747 - Kubernetes pod metrics
+https://grafana.com/dashboards/741 - Kubernetes deployment metrics
+
+https://grafana.com/dashboards/456 - evtl. prometheus data exploration
+
+----
+
+@L:Prometheus ist durch seine minimalistische Architektur und seine unkomplizierte Installation einfach auszuprobieren: Prometheus ist in Go geschrieben, so beschränkt sich die einfachste Form der Installation auf herunterladen von <U>https://prometheus.io/download/<U>, auspacken und starten: 
+
+@LI:
+tar xzvf prometheus-1.5.2.linux-*.tar.gz
+cd prometheus-1.5.2.linux-amd64/
+./prometheus
+
+@L: Ruft man im Webbrowser <U>http://localhost:9090/metrics<U> auf, sieht man die in Abbildung 1 gezeigten internen Metriken von Prometheus. Das eher für Debugging-Zwecke gedachte Prometheus Webinterface aus Abbildung 2 ist unter <U>http://localhost:9090<U> erreichbar. Beim weiteren Einstieg helfen inzwischen eine Vielzahl von Artikeln, Blog-Posts und Konferenzvorträgen, wie etwa [1],[2],[3]
+
+@Bi:001_prometheus_metrics.png
+@B:Abbildung 1: Prometheus liefert interne Metriken
+
+@Bi:002_prometheus_webinterface.png
+@B:Abbildung 2: Das simple Webinterface
+
+@ZT:Sammeln von Metriken
+
+@L:Die klassischen Monitoring-Tools wie Icinga und Nagios gehen davon aus, Komponenten oder Anwendungen mithilfe kleiner Programme ("Check-Plugins") zu überwachen. Dieser Ansatz wird auch "Blackbox-Monitoring" genannt. Prometheus stattdessen ist ein Vertreter des "Whitebox-Monitoring": dabei stellen Systeme und Applikationen bereits von sich aus Metriken im Prometheus-Format bereit. Eine ständig wachsende Zahl von Applikationen tut dies bereits, wie Docker, Kubernetes, etcd oder seit kurzem auch GitLab. Man spricht hier von "instrumentierten" Anwendungen.
+
+@L:Mit Hilfe sogenannter "Exporter" kann Prometheus aber auch nicht instrumentierte Systeme und Anwendungen überwachen. Exporter sind selbständige Programme, die Metriken aus dem überwachten System extrahieren und für Prometheus lesbar zur Verfügung stellen. Der bekannteste ist der "node_exporter" [4], der Betriebssystem-Metriken wie Speicherverbrauch oder Netzwerkauslastung bereitstellt. Es gibt inzwischen eine ganze Reihe von Exportern für die unterschiedlichsten Anwendungsfälle: Apache, MySQL, SNMP, vSphere und viele mehr. Eine Übersicht gibt es unter [5].
+
+@L:Der node_exporter ist ebenfalls in Go geschrieben und genauso einfach wie Prometheus zu installieren. Nach dem Auspacken und Starten findet man unter <U>http://localhost:9100/metrics<U> eine stattliche Liste von Metrikens über das eigene System. Damit lässt sich schon ein sehr aussagekräftiges Basis-Monitoring auf die Beine stellen.
+
+@LI:
+tar xzvf node_exporter-0.14.0.*.tar.gz
+cd node_exporter-0.14.0.linux-amd64
+./node_exporter
+
+@L:Der node_exporter beschränkt sich per Definition auf "Maschinen-Metriken", Informationen über laufende Prozesse sehen die Prometheus-Autoren eher auf Appliaktions-Ebene. Für diese sind weitere Exporter notwendig. Gibt man dem node_exporter mit der Option <C>--collector.textfile.directory<C> ein Verzeichnis an, werden dort abgelegte Text-Dateien mit der Endung <C>*.prom<C> eingelesen und darin enthaltene Metriken bereitgestellt. Ein Cron-Skript kann beispielsweise seine End-Zeit auf diese Weise an Prometheus übergeben:
+
+@LI:
+echo my_batch_completion_time $(date +%s)&&
+> /path/to/directory/my_batch_job.prom.$$
+mv /path/to/directory/my_batch_job.prom.$$&&
+/path/to/directory/my_batch_job.prom
+
+@L:Prometheus fragt in definierbaren Intervallen ("scraped") die konfigurierten Überwachungsziele ab. Prometheus kennt hier "Jobs" und "Instanzen" [6]: eine Instanz ist ein einzelnes Überwachungsziel, ein Job eine Sammlung gleichartiger Instanzen. Die Abfrageintervalle liegen im Regelfall zwischen 5 und 60 Sekunden, Standard-Wert sind 15 Sekunden. Die Übertragung der Metriken erfolgt über HTTP - sofern man einen Browser benutzt. Prometheus selbst verwendet die effizienteren Protocolbuffer. Diese Unterscheidung macht es einfach, "mal eben" nachzusehen, welche Metriken von einer Anwendung oder einem Exporter bereitgestellt werden.
+
+@ZT:Angeben von Überwachungszielen
+
+@L:Nur sich selbst zu überwachen macht noch keinen allzu großen Sinn. Die von Prometheus zu überwachenden "targets", werden in der Datei <C>prometheus.yml<C> angegeben. Liegt die Datei nicht im Programmverzeichnis, übergibt man Prometheus den Pfad zur Datei mit der Option <C>-config.file<C> Um die Metriken eines lokal gestarteten node_exporter abzufragen, fügt man im Abschnitt <C>scrape_configs<C> folgende Definition hinzu:
+
+@LI:
+- job_name: 'node'
+ static_configs:
+ - targets: ['localhost:9100']
+
+@L:Weitere Instanzen fügt man hinzu, indem man die Liste der "targets" um weitere Einträge erweitert: <C>['localhost:9100', '10.1.2.3:9100']<C>. Andere Arten von Jobs wie etwa instrumentierte Anwendungen oder andere Exporter gibt man als separate <C>job_name<C> Abschnitte an.
+
+@ZT:Prometheus als Entdecker
+
+@L:Für Umgebungen mit kurzlebigen Instanzen, wie Docker oder Kubernetes ist es natürlich wenig praktikabel, Instanzen manuell in eine Konfigurationsdatei anzugeben. Hier hilft ein weiteres nützliches Feature von Prometheus: "service**discovery". Es ist in der Lage beispielsweise für Azure, Google Container Engine, AWS oder Kubernetes selbständig Überwachungsziele zu finden. Die vollständige Liste und Konfigurationsparameter finden sich in [7].
+
+@L:Eine Sonderstellung nimmt die dateibasierte service**discovery ein: dabei werden alle auf die in <C>prometheus.yml<C> angegebenen Muster passenden Dateien eingelesen. Das Dateiformat ist ebenfalls in [7] beschrieben. Im Gegensatz zu Änderungen an der Datei <C>prometheus.yml<C> selbst ist hier kein Neustart nötig, Prometheus erkennt Änderungen an den Dateien selbständig. Mit diesem Mechanismus lassen sich beispielsweise Konfigurations-Werkzeuge wie etwa Ansible anzapfen - der Phantasie sind hier keine Grenzen gesetzt.
+
+@ZT:Die Architektur von Prometheus
+
+@KT: Abbildung 3: Die Architektur von Prometheus
+@Bi:003_prometheus_architecture.svg
+@B:Das Zusammenspiel der einzelnen Bausteine von Prometheus im offiziellen Architekturdiagramm von [8]
+@KE:
+
+@L:Wie im Architekturdiagramm (Abbildung 3) gezeigt, kümmert sich Prometheus selbst um die Abfrage der Ziele und das Speichern in eine (lokale) Zeitreihendatenbank. Darüber hinaus stellt es die mächtige Abfragesprache "PromQL" bereit, mit deren Hilfe gespeicherte Metriken zur Visualisierung, Aggregierung und Alarmierung abgefragt werden können.
+
+@L:Alarme reicht Prometheus an den Alertmanager [9] weiter, der Alarmzustände deduplizieren und etwa bei Wartungsfenstern stummschalten kann. Benachrichtigungen können zum Beispiel per Mail, Slack oder per generischem Webhook erfolgen.
+
+@L:Ein weiterer Bestandteil ist das Pushgateway [10], das Ergebnisse kurzlebiger Programmläufe entgegen nimmt und zwischenspeichert. Mit seiner Hilfe können auch Batch-Jobs Metriken an Prometheus senden.
+
+@L:Neben dem schon gezeigten eingebauten Webinterface kommt für aufwändigere Dashboards das nicht zum Prometheus-Projekt gehörende Grafana [11] zum Einsatz. Grafana ist inzwischen der de-facto Standard für Visualisierung und Dashboards. Für Prometheus gibt es unter [12] bereits eine Vielzahl von fertigen Dashboards zum Import in die eigene Grafana-Installation. Abbildung 4 zeigt das Dashboard, mit dem ich meinen VDSL-Zugang überwache [13].
+
+@Bi:004_grafana_dashboard.png
+@B:Abbildung 4: Beispiel eines Grafana-Dashboards aus Prometheus-Metriken
+
+@ZT:Aufbau der Prometheus Metriken
+
+@L:Prometheus kennt als Metriken im Prinzip Zähler ("counter") und Messwerte ("gauge"), die als Einträge in die Zeitreihen-Datenbank gespeichert werden. Eine Zähler-Metrik kann so aussehen:
+
+@LI:
+http_requests_total{status="200",§§
+method="GET"}@1434317560938 = 94355
+
+@L:Die Metrik besteht aus einem beschreibenden Namen, einem 64-Bit Zeitstempel und einem als Float64 gespeicherten Wert. Eine Metrik kann darüber hinaus "labels" enthalten, die als Schlüssel/Wert gespeichert werden. Labels machen eine Metrik sehr einfach multidimensional. Im obigen Beispiel etwa wird die Zahl der HTTP-Requests um die Dimensionen <C>status<C> und <C>method<C> erweitert, so dass man gezielt etwa nach Häufungen von HTTP-500-Fehlern suchen kann.
+
+@L:Aber Achtung: jedes Schlüssel-Wert Paar von Labels erzeugt eine eigene Zeitreihe, was den Platzbedarf der Zeitreihendatenbank drastisch erhöht. Die Prometheus-Autoren raten deshalb davon ab, Labels zur Speicherung von Dimensionen mit hoher Kardinalität zu verwenden - als Faustregel sollte Anzahl möglicher Werte 10 nicht überschreiten. Für Daten hoher Kardinalität, beispielsweise Kundennummern, empfehlen die Entwickler stattdessen, Log-Dateien zu analysieren. Es ist auch denkbar, mehrere spezialisierte Prometheus-Instanzen zu betreiben.
+
+@L:An dieser Stelle sei darauf hinweisen, dass man für einen Prometheus-Server mit einer hohen Anzahl von Metriken am besten einen Bare-Metal Server mit viel Arbeitsspeicher und schnellem Plattenplatz einplant. Prometheus kann aber auch für kleinere Projekte ohne Bedenken auf schwächerer Hardware eingesetzt werden: die Überwachung meines VDSL-Anschlusses zum Beispiel läuft klaglos auf einem RaspberryPi2 [13].
+
+@L:Metriken speichert Prometheus nicht unbegrenzt. Die Kommandozeilen-Option <C>storage.local.retention<C> gibt an, nach welcher Zeit Prometheus die gesammelten Daten löscht. Standardeinstellung ist hier 1 Monat. Möchte man Daten länger speichern kann man einzelne Datenreihen per "federation" [14] an einen Prometheus-Server mit längerer Speicherzeit weiterreichen. Im Umbruch befinden sich derzeit die Möglichkeiten, Daten in andere Zeitreihendatenbanken wie InfluxDB oder OpenTSDB speichern. Die bisher vorhandenen schreibenden Funktionen werden zur Zeit durch einen generischen Ansatz, mit dem auch Lesezugriffe möglich sein werden, ersetzt. Für InfluxDB ist beispielsweise ein Zusatzprogramm mit Schreib- und Lese-Funktionalität angekündigt.
+
+@L:Eine sehr gute Lektüre sind auch die offiziellen Best-practices der Prometheus-Autoren [15], womit man sich einige Probleme schon im Vorfeld ersparen kann. Stellt man selber Prometheus-Metriken bereit, sollte man etwa darauf achten, Zeit-Messwerte nur in Sekunden anzugeben, oder Datendurchsatz nur in Bytes anzugeben.
+
+@ZT:Abfragen von Messwerten mit PromQL
+
+@L:Mit der Abfragesprache PromQL kann man Daten aus der Prometheus-Zeitreihendatenbank abfragen. Die einfachste Möglichkeit sich mit PromQL vertraut zu machen, ist das Webinterface (Abbildung 2). Im Tab "Graph" kann man PromQL-Abfragen testen und sich die Ergebnisse ansehen. Eine einfache Abfrage einer vom node_exporter gelieferten Metrik ist zum Beispiel:
+
+@LI:
+node_network_receive_bytes
+
+@L:Diese Metrik verfügt über mehrere Dimensionen, unter anderem die Namen der Netzwerk-Interfaces. Will man nur die Werte für eth0 erhalten, sieht die Abfrage folgendermaßen aus:
+
+@LI:
+node_network_receive_bytes{device='eth0'}
+
+@L:Alle gesammelten Werte einer Metrik für die letzten 5 Minuten erhält man mit der Abfrage:
+
+@LI:
+node_network_receive_bytes&&
+{device='eth0'}[5m]
+
+@L:Auf den ersten Blick ähnlich sieht die folgende Abfrage aus:
+
+@LI:
+rate(node_network_receive_bytes&&
+{device='eth0'}[5m])
+
+@L:Hier passiert aber viel mehr: Prometheus wendet hier die Funktion <C>rate()<C> auf die Daten der letzten 5 Minuten an: ermittelt wird die Datenrate pro Sekunde der letzten 5 Minuten. Diese Aggregation von Daten ist eine der Hauptaufgaben von Prometheus, geht es doch davon aus, dass instrumentierte Anwendungen und Exporter lediglich Zähler oder Messwerte zurückliefern und sämtliche Aggregationen in Prometheus durchgeführt werden.
+
+@L:Die Datenrate aller Netzwerk-Interfaces pro Interface kann folgende Abfrage ermitteln:
+
+@LI:
+sum(rate(node_network_receive_bytes[5m]))&&
+by (device)
+
+@L:Diese Beispiele stellen nur einen kleinen Ausschnitt der Möglichkeiten von PromQL dar. Es lassen sich vielfältige Funktionen auf Metriken anwenden, unter anderem statistische Funktionen wie <C>predict_linear()<C> und <C>holt_winters()<C>. Eine Übersicht aller Funktionen liefert [16].
+
+@ZT:Wie lassen sich Alarme erzeugen
+
+@L:Um Alarmzustände festzustellen, verwendet Prometheus die Alarmierungsregeln ("alert**rules"). Eine Alarmierungsregel enthält einen PromQL-Ausdruck, optional eine Bedingung zur Dauer, sowie Labels und Anmerkungen, die vom Alertmanager zur Weiterverarbeitung benutzt werden können. Listing 1 zeigt eine Alarmierungsregel, die zutrifft, wenn für ein Überwachungsziel mehr als 5 Minuten der PromQL-Ausdruck <C>up == 0<C> zutrifft. In den Anmerkungen können wie im Beispiel gezeigt auch Variablen verwendet werden. Weitere Hinweise gibt die Dokumentation [17].
+
+@KT:Listing 1: Eine Alarmierungsregel, wenn ein Überwachungsziel länger als 5 Minuten "down" ist.
+@LI:
+@LI:
+ALERT InstanceDown
+  IF up == 0
+  FOR 5m
+  LABELS { severity = "page" }
+  ANNOTATIONS {
+    summary = "Instance {{ $labels.instance }} down",
+    description = "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 5 minutes.",
+  }
+@KE:
+
+@L:Wenn nun eine Alarmierungsregel zutrifft, löst Prometheus einen Alarm aus ("is firing"). Ist ein Alertmanager angegeben, leitet Prometheus die Informationen zu diesem Alarm per HTTP an den Alertmanager weiter. Dies passiert solange der Alarmzustand der Alarmierungsregel anhält und bei jeder Regelauswertung erneut. Deshalb wäre die Benachrichtigung direkt von Prometheus aus auch keine gute Idee.
+
+@ZT:Instrumentierung einer eigenen Anwendung
+
+@L:Das Prometheus-Projekt bietet für einige Programmiersprachen fertige Bibliotheken, um die Instrumentierung eigener Anwendungen mit Metriken zu vereinfachen. Bibliotheken sind unter anderem für Go, Java, Ruby und Python vorhanden. Listing 2 zeigt beispielhaft, wie eine Python-Anwendung für Prometheus instrumentiert werden kann. Startet man die Demo-Anwendung, kann man die erzeugten Metriken unter <U>http://localhost:8000<U> anzeigen.
+
+@KT:Listing 2: Demo zur Instrumentierung von Python-Anwendungen von [18]
+@LI:
+from prometheus_client import start_http_server, Summary
+import random
+import time
+
+# Create a metric to track time spent and requests made.
+REQUEST_TIME = Summary('request_processing_seconds', 'Time spent processing request')
+
+# Decorate function with metric.
+@REQUEST_TIME.time()
+def process_request(t):
+    """A dummy function that takes some time."""
+    time.sleep(t)
+
+if __name__ == '__main__':
+    # Start up the server to expose the metrics.
+    start_http_server(8000)
+    # Generate some requests.
+    while True:
+        process_request(random.random())
+@KE:
+
+@L:Sehr einfach ist auch das Senden von Metriken von Batch-Jobs an Prometheus. Ein Beispiel ist der speedtest_exporter [19] - ein einfaches Perl-Skript, das die Ausgabe eines anderen Programmes (hier <C>speedtest_cli<C>) verarbeitet und die Ergebnisse per <C>curl<C> an das Pushgateway schickt, von wo sich Prometheus die erfassten Daten abholt. Dabei wird ein zeilenweiser String mit einer oder mehreren Metriken per HTTP-POST an das Pushgateway geschickt. Die gesendeten Metriken des speedtest_exporter sehen beispielsweise so aus:
+
+@LI:
+speedtest_latency_ms 22.632
+speedtest_bits_per_second{§§
+direction="downstream"} 52650000
+speedtest_bits_per_second{§§
+direction="upstream"} 29170000
+
+@L:In der URL wird ein eindeutiger Job-Name angegeben, zum Beispiel <U>http://localhost:9091/metrics/job/speedtest_exporter<U>. Mehr Hinweise dazu finden sich in [20].
+
+@ZT:Fazit
+
+@L:Prometheus besticht durch seine Einfachheit und die extrem vielfältigen Möglichkeiten von PromQL. Für Entwickler, die ihre Applikation überwachen wollen oder im Container-Umfeld ist Prometheus sicher eine sehr gute Wahl. Wie [21] zeigt, ist die Überwachung eines kompletten Kubernetes-Clusters sehr einfach möglich.
+
+@L:Im Unternehmensumfeld muss man allerdings ein paar Kröten schlucken: die Langzeitarchivierung von Metriken ist noch eine Baustelle, Verschlüsselung oder Zugriffskontrolle müssen selbst um Prometheus herum gebaut werden. Wer damit leben kann, bekommt mit Prometheus ein mächtiges Werkzeug, das mit Sicherheit in den nächsten Jahren auch in diesen Punkten besser werden wird.
+
+@IT:Weiterführende Informationen
+@IL:
+[1] Blog von Brian Brazil: <U>https://www.robustperception.io/blog/<U>
+[2] Vorträge der PromCon 2016: <U>https://www.youtube.com/playlist?list=PLoz-W_CUquUlCq-Q0hy53TolAhaED9vmU<U>
+[3] Weaveworks Blog: <U>https://www.weave.works/tag/prometheus/<U>
+[4] node_exporter: <U>https://github.com/prometheus/node_exporter<U>
+[5] Liste von Exportern: <U>https://prometheus.io/docs/instrumenting/exporters/<U>
+[6] Jobs und Instanzen: <U>https://prometheus.io/docs/concepts/jobs_instances/<U>
+[7] Service-discovery: <U>https://prometheus.io/docs/operating/configuration/<U>
+[8] Offizielles Architekturdiagramm: <U>https://github.com/prometheus/prometheus/blob/master/documentation/images/architecture.svg<U>
+[9] Alertmanager: <U>https://prometheus.io/docs/alerting/alertmanager/<U>
+[10] Pushgateway: <U>https://prometheus.io/docs/instrumenting/pushing/<U>
+[11] Grafana: <U>https://prometheus.io/docs/visualization/grafana/<U>
+[12] Fertige Grafana-Dashboards für Prometheus: <U>https://grafana.com/dashboards?dataSource=prometheus<U>
+[13] Prometheus und die Fritzbox: <U>https://labs.consol.de/monitoring/2017/03/08/prometheus-und-die-fritzbox.html<U>
+[14] Federation von Prometheus-Servern: <U>https://prometheus.io/docs/operating/federation/<U>
+[15] Best-practices zum Einsatz von Prometheus: <U>https://prometheus.io/docs/practices/naming/<U>
+[16] Funktionen von PromQL: <U>https://prometheus.io/docs/querying/functions/<U>
+[17] Alarmierungsregeln: <U>https://prometheus.io/docs/alerting/rules/<U>
+[18] Demo-Anwendung zur Instrumentierung von Python-Anwendungen: <U>https://github.com/prometheus/client_python<U>
+[19] speedtest_exporter: <U>https://github.com/RichiH/speedtest_exporter<U>
+[20] Metriken über das Pushgateway übertragen: <U>https://prometheus.io/docs/instrumenting/pushing/<U>
+[21] Monitoring von Kubernetes mit Prometheus: <U>https://coreos.com/blog/prometheus-and-kubernetes-up-and-running.html<U>

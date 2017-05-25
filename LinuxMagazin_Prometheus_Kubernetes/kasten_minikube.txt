@@ -1,0 +1,27 @@
+modiano:~ krausm$ minikube version
+minikube version: v0.19.0
+
+
+modiano:~ krausm$ minikube start
+Starting local Kubernetes v1.6.0 cluster...
+Starting VM...
+Downloading Minikube ISO
+ 89.51 MB / 89.51 MB [==============================================] 100.00% 0s
+SSH-ing files into VM...
+Setting up certs...
+Starting cluster components...
+Connecting to cluster...
+Setting up kubeconfig...
+Kubectl is now configured to use the cluster.
+
+
+modiano:~ krausm$ minikube status
+minikubeVM: Running
+localkube: Running
+
+
+modiano:~ krausm$ minikube dashboard
+Opening kubernetes dashboard in default browser...
+
+
+TODO: minikube service

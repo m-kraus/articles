@@ -1,0 +1,371 @@
+@R:Programmieren
+@SW:Javascript-Alternativen
+
+@D:Coffeescript, Elm, Typescript und Dart
+@T: Geändertes Skript
+
+@V:Javascript treibt zahlreiche interaktive Webanwendungen an, schleppt allerdings immer noch einige Unzulänglichkeiten und Altlasten mit sich. Genau die möchten die vier im Artikel vorgestellten Konkurrenten entsorgen.
+
+@A:Tim Schürmann
+
+@L:Zusammen mit Anwendungen, die im Browser laufen, erlebte auch Javascript in jüngster Zeit ein Revival. Dabei erblickte die Skriptsprache bereits Mitte der 90er Jahre das Licht der Welt. Ihre Macher stülpten der anfangs recht simplen Skriptsprache im Laufe der Zeit immer weitere Konstrukte über. Ein Paradebeispiel ist die von vielen Entwicklern gehasste prototypbasierte Objektorientierung, die häufig unverstanden und ungenutzt blieb. Erst 2015 erhielt die mittlerweile als ECMA-Script standardisierte Programmiersprache eine optionale klassenbasierte Objektorientierung. Gegenüber Java, C++ und Co. lässt sie jedoch weiterhin Features vermissen [1]. Obendrein bieten Javascript beziehungsweise ECMA-Script nach wie vor keine Typprüfung an, was in der Praxis immer wieder gern zu Ausnahmefehlern führt.
+
+@L:Gleich mehrere alternative Skriptsprachen wollen Javascript daher wahlweise ablösen oder zumindest in puncto Programmierung vereinfachen. Zu den besonders weit verbreiteten und beliebten gehören derzeit Coffeescript [2], Googles Dart [3], Elm [4] sowie Microsofts Typescript [5]. In einem Vergleich zeigt der Artikel, was die vier Kandidaten voneinander unterscheidet und in welchem Bereich sie Javascript womöglich den Rang ablaufen.
+
+@ZT:Coffeescript
+@L:Jeremy Ashkenas veröffentlichte 2009 die erste Version von Coffeescript [2]. Seine Skriptsprache erfindet das Rad nicht neu, sondern ergänzt Javascript einfach um weitere Konstrukte. Der Vorteil: Entwickler verwenden existierende Javascript-Bibliotheken wie Jquery [6] weiter. Zum Redaktionsschluss lag Coffeescript in der Version 1.12.4 vor, die lediglich ECMA-Script 5 und einige Teile von ECMA-Script 2015 unterstützt. Erst das kommende Coffeescript 2.0.0 kennt weitere Elemente von ECMA-Script 2015, dazu gehören insbesondere die dort eingeführten Klassen.
+
+@L:Ein vom Coffeescript-Team bereitgestellter Compiler übersetzt Coffeescript-Code in das Javascript-Pendant, das dann wiederum in jedem Browser läuft. Der erzeugte Javascript-Code soll dabei schneller arbeiten, als ein per Hand geschriebenes Äquivalent. Der Compiler steht unter der MIT-Lizenz und benötigt eine Javascript-Laufzeitumgebung wie etwa Node.js. Für zahlreiche Texteditoren, etwa Emacs und Gedit, existieren Coffeescript-Plugins. Wer Coffeescript erst einmal ausprobieren möchte, kann dies über einen Online-Editor auf der Projektseite tun (Abbildung 1).
+
+@BI:coffeescript1.png
+@B:Abbildung 1: Auf der Coffeescript-Homepage dürfen Entwickler unter <C>Try Coffeescript<C> auf der linken Seite Quellcode eintippen und per <C>Run<C> ausführen lassen. Rechts erscheint der übersetzte Javascript-Code.
+
+@L:Coffeescript erlaubt dem Entwickler eine stark verkürzte Notation. Unter anderem darf er das <C>var<C> vor Variablendeklarationen und das Semikolon am Ende eines Ausdrucks weglassen. Kommentare beginnen wie in Shell-Skripten mit dem Hash <C>#<C>, die zwei Schrägstriche <C>//<C> führen hingegen eine Ganzzahl-Division aus. Längere Strings und reguläre Ausdrücke darf der Entwickler über mehrere Zeilen verteilen.
+
+@L: Coffeescript erlaubt es auch, Arrays schnell zu zerschneiden:
+
+@LI: start = countdown[0..2]
+
+@L: In diesem Fall enthält <C>start<C> nur die ersten drei Elemente von <C>countdown<C>. Entwickler dürfen Funktionen mit dem <C>-><C> Operator erstellen und Parameter mit Vorgabewerten belegen:
+
+@LI:
+mult = (x = 1) -> x * x
+
+@L:Anstelle der geschweiften Klammern kennzeichnen Einrückungen Anweisungsblöcke, wie es Python vormacht. Listing 1 definiert auf diese Weise ein Objekt <C>Punkt<C> mit zwei Properties und einer Methode <C>zeichne()<C>. Mit dem sogenannten Splats-Operator <C>...<C> lassen sich zudem einer Funktion beliebig viele Parameter übergeben. Das <C>?<C> prüft, ob die Variable existiert.
+
+
+@KT:Listing 1: Ein einfaches Objekt in Coffeescript
+@LI:
+Punkt =
+	x: 1
+	y: 2
+	farbe: "rot"
+	zeichne: () -> alert(this.x + "," + this.y + "," + this.farbe);
+	faerbe: (a, b...) ->
+		existiert = true if this.farbe?
+		if existiert == true
+			this.farbe=a
+		else alert("Keine Farbe");
+
+Punkt.faerbe("gruen");
+Punkt.zeichne();
+@KE:
+
+@L:Für einfache Bedingungen existiert die Abkürzung <C>ergebnis = wert if bedingung<C>. Da der Vergleichsoperator <C>==<C> in Javascript häufig zu Missinterpretationen führt, übersetzt ihn der Coffeescript-Compiler automatisch in <C>===<C>. Zudem gibt es Synonyme für viele Boolesche- und Vergleichsoperatoren. So sind <C>on<C> und <C>off<C> identisch mit <C>true<C> und <C>false<C>. Verkettete Vergleiche testen schnell, ob eine Variable in einem bestimmten Bereich liegt: <C>imbild = 0 > Punkt.x > 640<C>. Die Skriptsprache bietet zudem ein an Ruby angelehntes <C>switch/case<C>-Konstrukt.
+
+@L:Daneben erweitert Coffeescript <C>for<C>-Schleifen um so genannte Comprehensions, dank denen der Code die Elemente eines Arrays besonders elegant durchläuft. Comprehensions sind zudem Ausdrücke und lassen sich zuweisen und zurückliefern:
+
+@LI:
+fahre = (a) -> alert(a)
+fahre auto for auto in ['bmw', 'vw', 'skoda'] when auto isnt 'skoda'
+
+@L:Der Compiler versucht zudem, Anweisungen in Ausdrücke umzuwandeln. Funktionen liefern etwa immer ihren letzten Wert zurück, daher dürfen Entwickler in vielen Fällen das <C>return<C> weglassen. Auch eine <C>while<C>-Schleife ist ein Ausdruck, der ein Array mit dem Ergebnis eines Durchlaufs durch die Schleife enthält. Im folgenden Beispiel enthält <C>countdown<C> ein Array mit den Zahlen 9 bis 0:
+
+@LI:
+zahl = 10
+countdown = while zahl > 0
+	zahl = zahl - 1
+
+@L:Coffeescript 1.12.4 führt ein eigenes einfaches Klassenkonzept ein, für das Listing 2 ein Beispiel zeigt. Dabei ist <C>@<C> die Kurzform von <C>this.<C>, über <C>super<C> ruft der Entwickler die gerade laufende Funktion in der Oberklasse auf. Das kommende Coffeescript 2.0.0 kompiliert die Klassen in ihre Pendants aus ECMA-Script 2015.
+
+@KT:Listing 2: Beispiel für eine Klassendefinition in Coffeescript
+@LI:
+class Punkt
+	constructor: (@x,  @y) ->
+
+	zeichne: () -> alert(@x + "," + @y);
+
+class Rechteck extends Punkt
+	constructor: (x, y, @b,  @h) ->
+		super x,y
+	zeichne: () -> alert(@x + ";" + @y + ";" + @b + ";" + @h);
+
+
+r = new Rechteck 1,2,3,4
+r.zeichne();
+@KE:
+
+@L: Bereits Coffeescript 1.12.4 unterstützt die Generator-Funktionen, und die so genannten Tagged Template Literals aus ECMA-Script 2015. Template Literals bauen den Inhalt von Variablen in einen Text ein: <C>gruss = "Hallo #{name}"<C>.
+
+@L:Das Coffeescript-Paket umfasst neben dem Compiler auch ein einfaches Buildsystem, das ähnlich wie Make oder Rake arbeitet. Kernpunkt ist ein <C>Cakefile<C>, in dem der Entwickler verschiedene Aufgaben für den Compiler vorgibt. Diese lassen sich dann über das Tool <C>cake<C> aufrufen. Ein Markdown-Dokument mit der Endung <C>.litcoffee<C> verfüttert der Entwickler dann an den Coffeescript-Compiler. Dieser interpretiert alle im Dokument eingerückten Blöcke als Coffeescript-Code und ignoriert den Rest.
+
+@ZT:Dart
+
+@L:2011 stellte Google seine Skriptsprache Dart der Öffentlichkeit vor [3]. Darin geschriebene Programme führt entweder eine Dart VM genannte virtuelle Maschine aus oder aber ein Compiler wandelt sie in Javascript-Code um. Die Dart VM und der Compiler gehören zum von Google bereitgestellten Dart-SDK. Das steht unter einer BSD-Lizenz und umfasst noch weitere nützliche Tools. So analysiert etwa der <C>dartanalyzer<C> die ihm zugeführten Dart-Skripte und weist auf potenzielle Fehler hin. Zusätzlich existiert mit Dartium ein Chromium-Browser mit integrierter Dart VM [8].
+
+@L: Über Plugins erlernen IDEs und Editoren wie Atom [9] und Emacs [10] die Skriptsprache, Webstorm [11] unterstützt Dart sogar von Haus aus. Wer das SDK nicht installieren möchte, geht die ersten Schritte im Online-Editor Dartpad aus Abbildung 2 [12]. Laut Google eignet sich Dart besonders zum Programmieren größerer Anwendungen. Die Organisation ECMA hat Dart mittlerweile standardisiert [13].
+
+@BI:dart.png
+@B:Abbildung 2: Dart-Skripte lassen sich unkompliziert im Dartpad ausprobieren. Rechts unten zeigt dieses die Hinweise des Compilers an.
+
+@L:Jedes Dart-Programm besitzt zwingend eine Funktion <C>main()<C>, die als Einsprungspunkt dient. Ein Beispiel für ein einfaches Skript zeigt Abbildung 2 auf der linken Seite: Es definiert zunächst eine Funktion <C>sagHallo()<C>, die das Hauptprogramm in <C>main()<C> aufruft. Gibt der Entwickler wie in Abbildung 2 den Typ einer Variablen an, führt der später eine Typprüfung durch. Neben Fließkommazahlen (<C>double<C>) gibt es noch Ganzzahlen (<C>int<C>). Beide sind wiederum Subtypen von <C>num<C>, das die einfachen Operationen <C>+<C>, <C>-<C>, <C>*<C> und <C>/<C> erlaubt.
+
+@L: Des Weiteren kennt Dart Zeichenketten (<C>String<C>) und Boolesche Werte (<C>bool<C>). Ein langer String lässt sich im Quellcode über mehrere aufeinander folgende Zeilen verteilen. Strings nutzen standardmäßig die UTF-16-Codierung. Soll eine Variable beliebige Werte aufnehmen, deklariert sie der Entwickler wie in Javascript mit <C>var<C>. Variableninhalte fügt Dart über die <C>$<C>-Notation in eine Zeichenkette ein. Mit <C>${exp}<C> baut der Codeschreiber auch den kompletten Ausdruck <C>exp<C> in den Text ein. Für kurze Funktionen wie <C>sagHallo()<C> gibt es zudem die Kurzschreibweise:
+
+@LI:
+String sagHallo(String name) => 'Hallo $name.';
+
+@L:Mit dem Aufzählungstyp <C>enum<C> lässt sich ein eigener Datentyp erstellen. Im folgenden Beispiel nehmen die Variablen vom Typ <C>Farbe<C> die drei Werte <C>Farbe.Rot<C>, Farbe.Gelb<C> oder <C>Farbe.Blau<C> an:
+
+@LI:
+enum Farbe { Rot, Gelb, Blau }
+
+@L:Dart kennt nur den Vergleichsoperator <C>==<C>. Für Bedingungen gibt es die Kurzschreibweise <C>var ergebnis = bedingung ? expr1 : expr2<C> oder noch kürzer: <C>var ergebnis = expr1 ?? expr2<C>. Besitzt <C>expr1<C> im letzten Fall nicht den Wert <C>null<C>, liefert Dart diesen Wert zurück, andernfalls das Ergebnis von <C>expr2<C>.
+
+@L: Sofern Dart an einer Stelle einen booleschen Wert erwartet, gilt nur <C>true<C> als wahr. Anders als in Javascript gibt daher folgender Code nichts aus:
+
+@LI:
+var huber = 'Herr Huber';
+if (huber) print('Tach!');
+
+@L:Ergänzend zu Arrays -- von Dart als Listen bezeichnet -- existieren noch so genannte Maps, die Schlüssel-Wert-Paare speichern. Neben den aus Javascript bekannten For-Schleifen iteriert der Programmierer zusätzlich mit <C>foreach()<C> über die Elemente eines Objekts. Listen und andere iterierbare Objekte durchläuft <C>for ... in<C>. Mit <C>break<C> verlässt ein Entwickler <C>while<C>-Schleifen, <C>continue<C> startet sofort den nächsten Schleifendurchlauf. Beide Schlüsselwörter kommen auch in Switch-Case-Konstrukten zum Einsatz.
+
+@L:In Dart ist alles ein Objekt. Variablen nehmen Funktionen auf, wodurch letztere auch als Argumente für andere Funktionen herhalten. Der Entwickler darf Parameter als optional kennzeichnen und wie in Coffeescript mit Standardwerten vorbelegen. Dart unterstützt anonyme beziehungsweise Lambda-Funktionen sowie Closures. Typen lassen sich zur Laufzeit mit den Schlüsselwörtern <C>as<C>, <C>is<C> und <C>is!<C> (für <C>ist nicht<C>) testen: <C>(p as Person).vorname = 'Klaus';<C>
+
+@L:Ein Beispiel für eine Klassendefinition zeigt Listing 3. Der Konstruktor trägt in Dart den gleichen Namen wie die Klasse. In Listing 3 nutzt er zudem eine Kurzschreibweise, die <C>x<C> und <C>y<C> direkt die übergebenen Werte zuweist. Alternativ lassen sich die Variablen auflisten, wobei die Zuweisung noch vor Ausführung des Konstruktor-Rumpfes erfolgt:
+
+@LI:
+Punkt(num a, num b) : x=a, y=b { ... }
+
+
+@KT:Listing 3: Beispiel für eine Klassendefinition in Dart
+@LI:
+class Punkt {
+	num x;
+	num y = 12;
+	num _deckkraft = 1;
+	Punkt(this.x, this.y);
+	Punkt.aufXAchse(num x) : this(x, 0);
+	Punkt operator +(Punkt p) {
+		return new Punkt(x + p.x, y + p.y);
+	}
+}
+
+class Quadrat extends Punkt {
+	num breite;
+	Quadrat(x, y, b) : super(x,y) {this.breite=b;}
+	num get rechts => this.x + this.breite;
+	set rechts(num w)  => this.breite = w - this.x;
+}
+
+main() {
+	var a = new Punkt(1,2);
+	var b = new Punkt(3,4);
+	var c = a + b;
+
+	var d = new Quadrat(1,2,3);
+	d.rechts=20;
+}
+@KE:
+
+@L:Bei Bedarf benennen Entwickler Konstruktoren und heben so ihren Einsatzzweck heraus, wie es Listing 3 in <C>Punkt.aufXAchse()<C> vorturnt. Das angehängte <C>: this(x,0)<C> ruft den namenlosen Konstruktor auf. Anders als bei der Konkurrenz lassen sich in Dart einige Operatoren überladen, wie etwa das <C>+<C>. In Listing 3 lassen sich so später zwei Punkte "addieren".
+
+@L: Die Vererbung erfolgt mit <C>extends<C>, <C>super<C> greift auf die Oberklasse zu. Alle Methoden und Properties sind öffentlich. Sofern ihr Name wie in Listing 3 bei <C>_deckkraft<C> mit einem Unterstrich beginnt, sind sie automatisch nur noch innerhalb der Klasse sichtbar (<C>private<C>). Für <C>get<C>- und <C>set<C>-Methoden bietet Dart eine abgekürzte Schreibweise, die in Listing 3 die Klasse <C>Rechteck<C> demonstriert. Daneben lassen sich konstante Objekte erstellen, die sich im Programmverlauf nie verändern. Mit <C>static<C> gekennzeichnete Properties und Methoden teilen sich alle Objekte der Klasse. Mit so genannten Factory-Konstruktoren stellt ein Entwickler sicher, dass von der Klasse nur ein einziges oder ganz bestimmtes Objekt existieren. Über Mixins lassen sich wiederum mehrere Klassen in einer vereinen:
+
+@LI:
+class Auto extends Motor with Karosserie {  // .. }
+
+@L:Tauschte man in Listing 3 <C>extends<C> gegen <C>implements<C>, würde <C>Rechteck<C> von <C>Punkt<C> nur die Schnittstelle, nicht aber die Implementierungen erben. Von als <C>abstract<C> markierten Klassen leitet Dart lediglich Klassen ab, kann aber keine Objekte erstellen.
+
+@L: Den Zugriff auf nicht-existierende Methoden fängt der Entwickler in Dart bei Bedarf ab. Dazu muss er in der entsprechenden Klasse lediglich die Methode <C>noSuchMethod(Invocation mirror)<C> implementieren. Bietet die Klasse eine Methode namens <C>call()<C> an, lässt sich ihr Objekt wie eine Funktion aufrufen. Abgeleitete Klassen können die Methoden der Oberklasse mit einer eigenen Variante überschreiben. Dazu muss der Entwickler sie allerdings mit <C>@override<C> markieren:
+
+@LI:
+class Rechteck extends Punkt {
+	@override
+	void zeichne() { ... }
+}
+
+@L:Neben <C>@override<C> kennt Dart derzeit noch weitere solcher Annotations -- hier Metadata genannt. Eine mit <C>@depricated<C> versehene Methode sollten Dart-Entwickler nicht mehr nutzen. Abschließend lassen sich Objekte auch schnell aus Json-Daten erstellen:
+
+@LI:
+var punkt = JSON.decode('{"x":1, "y":2}');
+
+@L:Dart unterstützt auch so genannte Generics. Dabei steht beim Deklarieren einer Klasse oder einer Funktion noch nicht fest, welche Werte eines ihrer Objekte später einmal verarbeitet. Als Typ nutzt der Entwickler einen Platzhalter, in folgendem Beispiel ist dies das <C>T<C>. Über <C>extends<C> in den spitzen Klammern nagelt er zudem die Typen auf bestimmte (Unter-)Klassen fest. Den eigentlichen Typ definiert er erst beim Erzeugen des Objekts:
+
+@LI:
+class Auto<T extends Daimler> {
+	T fahre(T modell) { ... };
+}
+var mb = new Auto<Mercedes>();
+
+@L:Beim Behandeln von Ausnahmen orientiert sich Dart an Java: Entwickler werfen per <C>throw<C> jedes Objekt und fangen es dann per <C>catch<C>. Dart stellt bereits einige vorgefertigte Klassen zur Fehlerbehandlung bereit, Entwickler leiten aber auch eigene Klassen von <C>Error<C> und <C>Exception<C> ab.
+
+@L:Dart unterstützt zudem asynchrones Programmieren: Eine mit <C>async<C> markierte Funktion kehrt umgehend zurück, noch bevor Dart die in ihrem Rumpf enthaltenen Anweisungen ausführt. Analog wartet ein mit <C>await<C> markierter Funktionsaufruf, bis die asynchrone Funktion ihre Arbeit beendet hat. Mit dem Future-API bietet Dart zudem ein Konzept, das den Promises aus ECMA-Script 2015 ähnelt.
+
+@L:Dart-Code lagern Entwickler auf Wunsch in so genannte Libraries aus. Jede dieser Bibliotheken bildet gleichzeitig einen eigenen Namensraum: Alle in einer Library mit einem Unterstrich beginnenden Funktionen und Variablen sind nur innerhalb der entsprechenden Library sicht- und nutzbar. Über <C>import<C>-Anweisung lassen sich Libraries in das eigene Dart-Skript einbinden, wobei die Libraries auch auf anderen Servern liegen dürfen. Dart unterstützt zudem das so genannte Lazy Loading, bei der das Dart-Programm die Library erst dann lädt, wenn es sie wirklich benötigt. Existierende Javascript-Bibliotheken lassen sich nur über ein API ansprechen.
+
+@ZT:Elm
+
+@L:Evan Czaplicki hat Elm [4] 2012 erschaffen, mittlerweile liegt die Entwicklung in den Händen der Elm Software Foundation. Im Gegensatz zur Konkurrenz handelt es sich um eine funktionale Programmiersprache. Den in Elm geschriebenen Programmcode übersetzt zwar ein Compiler in Javascript-Code, vorhandene Javascript-Bibliotheken lassen sich aber nur über eine spezielle Schnittstelle nutzen. Der Compiler untersteht einer BSD-Lizenz und ist in Haskell geschrieben. Er weist zudem nicht nur auf Fehler hin, sondern liefert auch Lösungsvorschläge (Friendly Error Messages). Alternativ zum Compiler nutzen Entwickler eine spezielle Console (die REPL), die eingetippten Elm-Code direkt ausführt. Für mehrere gängige Editoren, wie Atom, Intellij Idea [14] und Emacs stehen Plugins bereit. Unverbindlich ausprobieren dürfen Interessierte Elm in einem Online-Editor [15].
+
+@L:Elm selbst kennt nur wenige Konstrukte und Schlüsselwörter. Bei der Definition einer Variablen darf der Entwickler den Typ mit angeben. Elm unterscheidet zwischen booleschen Werten, Ganzzahlen, Fließkommazahlen, einzelnen Zeichen und Zeichenketten:
+
+@LI:
+zahl: Int
+zahl = 42
+
+@L:Der Compiler leitet automatisch die Typen der Variablen ab und warnt vor Problemen. Per <C>++<C> schweißen Elm-Entwickler Zeichenketten zusammen. Die Programmiersprache unterscheidet zudem die Ganzzahldivision <C>/<C> und die Division von Fließkommazahlen <C>//<C>. Kommentare beginnen mit <C>--<C>. Neben den genannten Datentypen gibt es noch Listen, die den Arrays aus Javascript ähneln:
+
+@LI:
+farben = [ "Rot", "Blau", "Gelb" ]
+
+@L:Listen lassen sich mit Funktionen aus einer mitgelieferten Bibliothek manipulieren. Beispielsweise sortiert <C>List.sort farben<C> die Liste <C>farben<C>. Ergänzend existieren Tupel wie <C>("Klaus", 32)<C>, die eine feste Anzahl von beliebigen Werten enthalten. Records wiederum nehmen mehrere Variablen auf, wobei der Punktoperator zum Wert einer Variablen führt:
+
+@LI:
+punkt = { x = 1, y = 2 }
+punkt.x
+
+@L:Alternativ weist der Entwickler Elm mit <C>.x point<C> an, die Variable <C>x<C> im Record <C>punkt<C> zu holen. Er ändert die Werte in einem Record über: <C>{ punkt | x = 3 }<C>. Sämtliche Manipulationen an Records erfolgen nicht-destruktiv. Elm ändert folglich nicht im Record <C>punkt<C> den Wert von <C>x<C>, sondern erstellt einen komplett neuen Record. Der Compiler stellt dabei eine effiziente Speichernutzung sicher. In Funktionen kann man die Elemente von Records direkt nutzen:
+
+@LI:
+dist {x,y} = sqrt (x^2 + y^2)
+
+@L:Union Types entsprechen schließlich noch <C>enum<C> aus Dart. In folgendem Beispiel entsteht der neue Datentyp <C>Farbe<C>, wobei Variablen wahlweise den Wert <C>Rot<C>, <C>Gelb<C> oder <C>Blau<C> annehmen:
+
+@LI:
+type Farbe = Rot | Gelb | Blau
+
+@L:Funktionen definieren Entwickler ohne die üblichen Klammern, die auch beim Aufruf fehlen. Mehrere Parameter trennt der Entwickler nur durch Leerzeichen:
+
+@LI:
+quadrat n = n * n
+
+@L:Wer Funktionen nicht verschachtelt aufrufen möchte, kann sie auch mit dem Pipe-Operator <C>|><C> hintereinander aufschreiben. Elm unterstützt anonyme beziehungsweise Lambda-Funktionen, wie etwa: <C>\n -> n / 2<C>. Hinter <C>\<C> steht der Name des Parameters, hinter dem Pfeil folgt der Funktionsrumpf. Bedingungen sind ebenfalls kurz und knapp:
+
+@LI:
+istPositiv zahl = if zahl > 0 then "Positiv" else "Nicht positiv"
+
+@L:Alternativ gibt es noch ein <C>case ... of<C> (wie in Abbildung 3). Die Sichtbarkeit von Variablen beschränkt der Entwickler zudem mit <C>let ... in<C> auf einen ganz bestimmten Ausdruck. Damit ist der Sprachumfang im Wesentlichen beschrieben. Den Bau einer kompletten Webanwendung sowie den Zugriff auf den HTML-Code ermöglichen mitgelieferte Funktionen. Diese nutzen durchweg ein Model-View-Controller-Konzept, das die Entwickler als Elm Architecture bezeichnen (Abbildung 3).
+
+@BI:elm.png
+@B:Abbildung 3: Elm bietet im Online-Editor einige vorgefertigte Beispiele. Das gewählte namens <C>Button<C> erzeugt beispielsweise die zwei Schaltflächen auf der rechten Seite, über die sich die Zahl verändern lässt.
+
+@ZT:Typescript
+
+@L:Auch Microsoft werkelt schon seit mehreren Jahren emsig an einer Javascript-Alternative namens Typescript [5]. Die Sprache ergänzt wie Coffeescript die aktuelle ECMA-Script-Version um einige weitere eigene Konstrukte. Javascript-Bibliotheken wie Jquery lassen sich somit in Typescript weiterverwenden. Mittlerweile fließen sogar regelmäßig Elemente aus Typescript zurück in den offiziellen ECMA-Script-Standard. Microsoft bietet für Typescript einen Compiler an, der Typescript-Programme in ECMA-Script übersetzt [16]. Testen lassen sich Typescript-Programme wie bei der Konkurrenz online im Playground-Editor (Abbildung 4, [17]).
+
+@BI:typescript.png
+@B:Abbildung 4: Im Playground-Editor stehen fertige Beispiele für Typescript parat. Hier demonstriert <C>Using Classes<C> den Umgang mit Klassen.
+
+@L:Wie in Dart dürfen Entwickler den Typ einer Variablen festlegen, der Compiler führt dann eine statische Typprüfung durch. Im folgenden Beispiel definiert die zweite Zeile eine Funktion, der Rückgabetyp steht hinter dem Namen:
+
+@LI:
+var name: string = "Tim";
+function ausgabe: void (a: string) { console.log(a); }
+
+@L:Das <C>void<C> weist den Compiler darauf hin, dass die Funktion nichts zurück liefert. Ergänzend gibt es noch den speziellen Rückgabetyp <C>never<C>. Damit gekennzeichnete Funktionen beenden sich nicht, wie es etwa bei Exceptions der Fall ist. Neben Strings kennt Typescript noch Boolsche Werte (<C>boolean<C>) und Fließkommazahlen (<C>number<C>). Ist der Typ einer Variablen unbekannt, kennzeichnet der Entwickler dies explizit mit dem Typ <C>any<C>. Bei diesen Variablen schaltet der Compiler die Typprüfung ab. Umgekehrt kann der Entwickler den Typ mit gleich zwei Notationen explizit überprüfen lassen:
+
+@LI:
+var laenge: any = (<string>vorname).length;
+var laenge: any = (vorname as string).length;
+
+@L:In Funktionen darf der Entwickler für einen Parameter mehrere alternative Typen erlauben. In folgendem Beispiel übergibt er entweder eine Zahl oder einen String:
+
+@LI:
+function foo(wert: string | number) {...}
+
+@L:Zudem kann man die exakten Werte vorgeben, die ein String enthalten darf (String Literal Types). Das ist etwa nützlich, um bestimmte Eingaben in Webanwendungen zu erzwingen. Wie Dart kennt Typescript den Aufzählungstyp <C>enum<C>:
+
+@LI:
+enum Farbe {Rot, Gelb, Blau};
+
+@L:Eine Alternative sind Tupel. Im folgenden Beispiel speichert <C>arbeiter<C> die beiden Werte <C>Klaus<C> und <C>34<C>. Der Zugriff auf dieses Wertepaar erfolgt wie bei einem Array über den Index:
+
+@LI:
+var arbeiter: [string, number];
+arbeiter = ["Klaus", 34];
+arbeiter[1] = 35;
+
+@L:Klassen definiert der Entwickler wie in ECMA-Script 2015. Auf Wunsch übersetzt sie der Typescript-Compiler in älteres ECMA-Script. Steht vor einem Property oder einer Methode das Schlüsselwort <C>private<C>, dürfen nur noch die Methoden der Klasse darauf zugreifen. Im Fall von <C>protected<C> erhalten hingegen auch alle abgeleiteten Klassen Zugriff. Über das Schlüsselwort <C>static<C> legt Typescript zudem Properties an, die sich alle Objekte einer Klasse teilen. Typescript bietet zudem eine Notation für Getter- und Setter-Methoden:
+
+@LI:
+class Auto {
+	protected _modell: string;
+	get modell(): string { return this._modell; }
+}
+
+@L:Typescript ergänzt das Klassenkonzept um Interfaces, die lediglich den Aufbau beziehungsweise die Schnittstelle eines Objekts beschreiben (wie in Listing 4). Ein mit einem Fragezeichen gekennzeichnetes Property ist optional. Via <C>extends<C> erweitert ein Interfaces ein anderes Interface oder aber eine Klasse, wobei im letzten Fall das Interface nur die Methoden und Properties aus der Klasse übernimmt. In Typescript sind zwei Typen miteinander kompatibel, wenn ihre interne Struktur übereinstimmt. Entwickler müssen daher nicht wie in anderen Sprachen explizit das Interface implementieren. Es genügt, wenn ein Objekt die im Interface beschriebene Schnittstelle anbietet. Ein Beispiel dafür zeigt Listing 4, in dem <C>sagHallo()<C> auch einen <C>Mitarbeiter<C> korrekt verarbeitet.
+
+@KT:Listing 4: Beispiel für Interfaces in Typescript
+@LI:
+interface Person {
+	vorname: string;
+	nachname?: string;
+}
+
+interface Student extends Person {
+	matrikelnr: number;
+}
+
+function sagHallo(person : Person) {
+	console.log("Hallo " + person.vorname);
+}
+
+class Mitarbeiter {
+	name: string;
+	constructor(public vorname, public nachname) {
+		this.name = vorname + " " + nachname;
+	}
+}
+
+var klaus = new Mitarbeiter("Klaus", "Meier");
+sagHallo(klaus);
+@KE:
+
+@L:Ein Interface beschreibt neben Klassen auch Funktionen. Ergänzend zu den Interfaces gibt es noch abstrakte Klassen, die es lediglich erlauben, weitere Klassen abzuleiten. Bei mit <C>const<C> erstellten Objekten darf der Entwickler weiterhin die Properties des Objekts ändern. Dies unterbindet erst das Schlüsselwort <C>readonly<C> vor der entsprechenden Property. Die so genannten Indexable Types verwandeln ein Interface in ein Array oder Dictionary. Im folgenden Beispiel bestehen die <C>Mitarbeiter<C> aus mehreren Namen:
+
+@LI:
+interface Mitarbeiter {
+	[index: number]: string;
+}
+
+@L:Der Zugriff erfolgt wie bei einem Array. Im Beispiel ist der Index eine Zahl (<C>number<C>), die gespeicherten Werte sind Texte (<C>string<C>). Tauscht der Programmierer <C>number<C> gegen <C>string<C>, greift er auf die gespeicherten Werte über Begriffe zu, wie etwa: <C>plz["Dortmund"]<C>.
+
+@L:Typscript fasst in bestimmten Fällen mehrere Deklarationen zu einer zusammen (Declaration Merging). Im folgenden Beispiel verbindet der Compiler beispielsweise automatisch die beiden Interface-Deklarationen:
+
+@LI:
+interface Punkt { x: number; }
+interface Punkt { y: number; }
+let p: Punkt = {x: 1, y: 2};
+
+@L:Auch Typescript bietet die sogenannten Generics, deren Notation der von Java beziehungsweise Dart ähnelt. Mixins setzen mehrere Klassen zu einer neuen zusammen. Ergänzend gibt es die so genannten Intersection Types, die das Kombinieren von Typen erlauben. So ist <C>Person & Mitarbeiter & Student<C> sowohl eine Person, als auch ein Mitarbeiter und ein Student.
+
+@L:Typescript unterstützt ECMA-Script-Module. Der Compiler erzeugt zudem passenden Code für die Modul-Lösungen von Node.js (Common JS), require.js (AMD), isomorphic (UMD) und System JS. Typescript kapselt auf Wunsch Variablen, Klassen und andere Elemente in einem eigenen Namespace. Das verringert das Risiko, dass eine importierte Funktion so heißt, wie eine eigene. Experimentierfreudige Entwickler dürfen in der aktuellen Typescript-Version bereits Decorators nutzen. Sie verleihen einer Klasse, einem Property oder einer Methode zusätzliche Eigenschaften. Das folgende Beispiels weist der Klasse <C>Foo<C> den Decorator <C>@sealed<C> zu. Was dieser Decorator wann bewirkt, legt der Entwickler in einer separaten Funktion fest:
+
+@LI:
+@sealed
+class Foo { ... }
+
+@L:Der Typescript-Compiler unterstützt die JSX-Spezifikation [18] und weist auf typische Javascript-Fehler hin. Plugins integrieren Typescript für unterschiedliche Build-Tools wie etwa Maven. Auch für Atom, Eclipse und viele weitere Editoren beziehungsweise IDEs existieren Plugins. Der Compiler selbst ist in Typescript geschrieben und benötigt zur Ausführung Node.js. Die von Microsoft entwickelten Tools nebst Compiler stehen unter der Apache-Lizenz 2.0, die Spezifikation der Sprache unter der offenen Lizenz Open Web Foundation Final Specification Agreement Version 1.0, kurz OWF 1.0 [19].
+
+@ZT:Fazit
+@L:Die Wahl zwischen Coffeescript, Dart, Elm und Typescript hängt vom jeweiligen Projekt, den Anforderungen und nicht zuletzt vom eigenen Geschmack ab.
+
+@L:Coffeescript hat gegenüber ECMA-Script etwas den Anschluss verloren und bietet zudem keine Typprüfung. Der Vorteil dieser Skriptsprache reduziert sich so wesentlich auf die von Python abgeschaute Codeformatierung mit Tabulatoren und die Möglichkeit, Markdown mit Coffeescript zu mischen.
+
+@L:Dart wiederum lässt sich in einer speziellen virtuellen Maschinen ausführen. Die Sprache bietet moderne objektorientierte Konzepte wie Mixins, die sich jedoch mehr an Java und C als an Javascript orientieren.
+
+@L:Elm richtet sich vor allem an Liebhaber der funktionalen Programmierung. Diese entwickeln mit ihren gewohnten Denkmustern schnell Webanwendungen. Ein weiterer Vorteil ist die Stabilität: insbesondere durch die automatische Typableitung treten Laufzeitfehler in Elm selten auf.
+
+@L:Typescript dient mittlerweile als Spielwiese für zukünftige ECMA-Script-Versionen. Da Typescript auf Javascript basiert, fällt die Umstellung leicht. Die Typisierung sorgt hier ebenfalls für weniger Laufzeitfehler. Bei Dart und Typescript darf man allerdings munter typisierte und typenlose Variablen mischen. Trotz der Compiler-Unterstützung verbleibt so eine kleine Fehlerquelle.(<I>kki<I>)
+
+@IT:Infos
+@IL:[1] ECMA-Script-Spezifikation: <U>https://github.com/tc39/ecma262/<U>
+@IL:[2] Coffeescript: <U>http://coffeescript.org<U>
+@IL:[3] Dart: <U>https://www.dartlang.org<U>
+@IL:[4] Elm: <U>http://elm-lang.org<U>
+@IL:[5] Typescript: <U>http://www.typescriptlang.org<U>
+@IL:[6] Jquery: <U>https://jquery.com<U>
+@IL:[7] Coffeeskript-Online-Editor: <U><U>
+@IL:[8] Dartium: <U>https://webdev.dartlang.org/tools/dartium<U>
+@IL:[9] Atom Editor: <U>https://atom.io<U>
+@IL:[10] Emacs: <U>https://www.gnu.org/software/emacs/<U>
+@IL:[11] Webstorm: <U>https://www.jetbrains.com/webstorm/<U>
+@IL:[12] Dartpad: <U>https://dartpad.dartlang.org<U>
+@IL:[13] Dart ECMA-Spezifikation: <U>http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-408.pdf<U>
+@IL:[14] Intellij Idea: <U>https://www.jetbrains.com/idea/<U>
+@IL:[15] Elm Online-Editor: <U>http://elm-lang.org/try<U>
+@IL:[16] Typescript-Tools auf GitHub: <U>https://github.com/Microsoft/Typescript<U>
+@IL:[17] Typescript Playground: <U>http://www.typescriptlang.org/play/index.html<U>
+@IL:[18] JSX: <U>http://www.typescriptlang.org/docs/handbook/jsx.html<U>
+@IL:[19] OWF 1.0: <U>https://github.com/Microsoft/Typescript/blob/master/doc/spec.md<U>

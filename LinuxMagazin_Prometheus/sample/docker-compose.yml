@@ -1,0 +1,13 @@
+version: "3"
+services:
+  prometheus:
+    build: ./prometheus
+    image: myapp/prometheus
+    ports:
+      - "9090:9090"
+  sample_app:
+    build: ./sample_app
+    image: myapp/sample_app
+    ports:
+      - "8000:8000"
+
