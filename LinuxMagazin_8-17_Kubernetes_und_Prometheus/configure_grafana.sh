@@ -1,16 +1,19 @@
 #!/bin/bash
 
+echo "Getting Prometheus and Grafana service url from running minikube cluster:"
 PROMETHEUS_URL=$(minikube service --namespace=monitoring --url prometheus)
+echo "Prometheus: ${PROMETHEUS_URL}"
 GRAFANA_URL=$(minikube service --namespace=monitoring --url grafana | sed "s,://,://admin:admin@,g")
+echo "Grafana: ${GRAFANA_URL}"
 
 echo "Importing Prometheus-datasource for Grafana"
 DATASOURCE=$(cat <<EOF
 {
-  "name": "prometheus",
-  "type": "prometheus",
-  "url": "${PROMETHEUS_URL}",
-  "access": "proxy",
-  "basicAuth": false,
+  "name":"prometheus",
+  "type":"prometheus",
+  "url":"${PROMETHEUS_URL}",
+  "access":"proxy",
+  "basicAuth": false
 }
 EOF
 )
