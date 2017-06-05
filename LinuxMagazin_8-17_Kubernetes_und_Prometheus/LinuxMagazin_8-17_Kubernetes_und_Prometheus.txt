@@ -5,9 +5,9 @@
 
 @A:Michael Kraus
 
-@L:Kubernetes erleichtert die Verteilung einer Container basierten Infrastruktur enorm. Man muss sich im Prinzip keine Gedanken mehr darüber machen, wo Applikationen laufen oder ob ausreichend Ressourcen zur Verfügung haben. Aber um optimale Leistung sicherzustellen, kommen wir nicht daran vorbei, unsere Applikationen, die Container in denen sie laufen und Kubernetes selbst zu überwachen.
+@L:Kubernetes erleichtert die Verteilung einer Container basierten Infrastruktur enorm. Man muss sich im Prinzip keine Gedanken mehr darüber machen, wo Applikationen laufen oder ob ausreichend Ressourcen zur Verfügung haben. Aber um optimale Leistung sicherzustellen, kommt man nicht daran vorbei, die Applikationen, die Container in denen sie laufen und Kubernetes selbst zu überwachen.
 
-@L:Die grundlegende Funktionsweise von Prometheus wurde ja bereits in [1] behandelt. In diesem Artikel soll es speziell um seine Stärken in der Zusammenarbeit mit Kubernetes gehen. Zum einen ist Prometheus dank seiner einfachen Architektur sehr einfach selbst in Kubernetes ausführbar. Der wichtigere Faktor aber ist die eingebaute Service Discovery, mit deren Hilfe sich Prometheus selbständig über die Kubernetes API Informationen über Kubernetes selbst und darauf laufende Container, Dienste, Anwendungen und eben auch Labels holt. Deshalb muss die Konfiguration von Prometheus auch nicht geändert werden, wenn Pods gestartet oder beendet werden, oder wenn dem Kubernetes Cluster neue Knoten hinzugefügt werden: all dies erkennt Prometheus automatisch.
+@L:Die grundlegende Funktionsweise von Prometheus wurde ja bereits in [1] behandelt. In diesem Artikel soll es speziell um seine Stärken in der Zusammenarbeit mit Kubernetes gehen: dank seiner eingebauten Service Discovery kann sich Prometheus selbständig über die Kubernetes API Informationen über Kubernetes selbst und darauf laufende Container, Dienste und Anwendungen holen. Deshalb muss die Konfiguration von Prometheus auch nicht geändert werden, wenn Pods gestartet oder beendet werden, oder wenn dem Kubernetes Cluster neue Knoten hinzugefügt werden: all dies erkennt Prometheus automatisch.
 
 @L:Neben üblichen Daten wie CPU-Auslastung, Speichernutzung oder Festplatten I/O, interessieren uns in einer Kubernetes Umgebung auch Metriken von Containern, Pods, Deployments und auch der darauf laufenden Anwendungen.
 
@@ -15,7 +15,7 @@
 
 @ZT:Entdeckt
 
-@L:Bei der Konfiguration von Prometheus orientieren wir uns dabei am offiziellen Beispiel [2]. Zur Abfrage von Informationen aus der Kubernetes API genügt:
+@L:Bei der Konfiguration von Prometheus orientieren wir uns dabei am offiziellen Beispiel [2]. Zur Abfrage von Metriken aus der Kubernetes API genügt beispielsweise dieser Teil:
 @LI:
 - job_name: 'kubernetes-apiservers'
    kubernetes_sd_configs:
@@ -26,14 +26,14 @@
      insecure_skip_verify: true
    bearer_token_file: /.../serviceaccount/token
 
-@L:Und schon landen in Prometheus eine Menge von Metriken wie in Abbildung 1 gezeigt.
+@L:Und schon landen durch die Service Discovery in Prometheus eine Menge von Metriken wie in Abbildung 1 gezeigt.
 
 @Bi:001_api_metrics.png
 @B:Abbildung 1: Kubernetes API Metriken
 
 @ZT:Etikettiert
 
-@L:Labels sind in Kubernetes die einzige Möglichkeit, gezielt auf Pods, Services und andere Objekte zuzugreifen oder zu identifizieren. Es ist deshalb enorm wichtig, dass Prometheus diese Labels erkennt und beibehält. Seine Service Discovery ist so ausgelegt, dass diese Informationen in sogenannten Meta Labels abgelegt werden. Diese können dann mit "Relabeling" Regeln in endgültige Prometheus Labels umgewandelt werden. Die Meta Labels werden nach der automatischen Erzeugung der Überwachungsziele verworfen und nicht mit gespeichert.
+@L:Größter Vorteil von Prometheus im Zusammenspiel mit Kubernetes ist aber die Unterstützung von "Labels". Labels sind in Kubernetes die einzige Möglichkeit, gezielt auf Pods, Services und andere Objekte zuzugreifen oder zu identifizieren. Es ist deshalb enorm wichtig, dass Prometheus diese Labels erkennt und beibehält. Seine Service Discovery ist so ausgelegt, dass diese Informationen in sogenannten Meta Labels abgelegt werden. Diese können dann mit "Relabeling" Regeln in endgültige Prometheus Labels umgewandelt werden. Die Meta Labels werden nach der automatischen Erzeugung der Überwachungsziele verworfen und nicht mit gespeichert.
 
 @L:Relabeling wird in beispielsweise im Blog von Brian Brazil [3] näher beschrieben. Regeln können beispielsweise so aussehen:
 @LI:
@@ -59,7 +59,7 @@ metadata:
 @LI:
 my_app_metric{app="myapp",mylabel="myvalue",...}
 
-@L:Prometheus erzeugt für jedes weitere Label eine eigene Zeitreihe, das heisst jedes weitere Label fügt der Metrik <C>my_app_metric<C> eine weitere Dimension hinzu, die wiederum als separate Zeitreihe gespeichert wird. Prometheus kann hier von Haus aus schon mit Millionen von Zeitreihen umgehen, dennoch arbeiten die Entwickler momentan an der Version 2.0, die hier noch deutlich mehr bieten wird [5], um den Einsatz in extrem großen Kubernetes Umgebungen mit tausenden von Knoten weiter zu verbessern.
+@L:Prometheus erzeugt für jedes weitere Label eine eigene Zeitreihe, das heißt jedes weitere Label fügt der Metrik <C>my_app_metric<C> eine weitere Dimension hinzu, die wiederum als separate Zeitreihe gespeichert wird. Prometheus kann hier von Haus aus schon mit Millionen von Zeitreihen umgehen, dennoch arbeiten die Entwickler momentan an der Version 2.0, die hier noch deutlich mehr bieten wird [5], um den Einsatz in extrem großen Kubernetes Umgebungen mit tausenden von Knoten weiter zu verbessern.
 
 @ZT:Persistent oder ephemer?
 
@@ -78,7 +78,7 @@ minikube service --namespace=monitoring prometheus
 minikube service --namespace=monitoring --url prometheus
 @KE:
 
-@L:Alle für diesen Artikel benötigten Dateien können Sie sich als Archiv von [10] herunterladen und in einem Arbeitsverzeichnis entpacken. Es empfiehlt sich, vor allem die Dateien mit den Kubernetes-Definitionen (<C>*.yml<C>) genauer anzusehen, da hier im Artikel meist nur Ausschnitte abgedruckt werden können.
+@L:Alle für diesen Artikel benötigten Dateien können als Archiv von [10] heruntergeladen und in einem Arbeitsverzeichnis entpackt werden. Es empfiehlt sich, vor allem die Dateien mit den Kubernetes-Definitionen (<C>*.yml<C>) genauer anzusehen, da hier im Artikel wenn überhaupt nur Ausschnitte daraus abgedruckt werden können.
 
 @L:Die folgenden Schritte sind auf Minikube zugeschnitten, deshalb werden weiterführende Themen wie persistente Speicherung oder die mit Kubernetes 1.6 eingeführte "role based access control" (RBAC) hier nicht behandelt. Prometheus kann aber auch damit eingesetzt werden [11].
 
@@ -219,7 +219,7 @@ $ ./configure_grafana.sh
 
 @ZT:Was noch?
 
-@L:Aktuell haben wir schon eine Menge an Informationen über unseren Kubernetes Cluster gesammelt, aber da geht noch mehr: ein interessantes Unterprojekt von Kubernetes ist kube-state-metrics [20]. Es holt sich ebenfalls aus der Kubernetes API Informationen über vorhandene Objekte und generiert daraus neue Metriken, die es in Prometheus kompatiblem Format bereitstellt [22]. Das komplette Monitoring in Kubernetes zeigt Abbildung 4.
+@L:Aktuell haben wir schon eine Menge an Informationen über unseren Kubernetes Cluster gesammelt, aber da geht noch mehr: ein interessantes Unterprojekt von Kubernetes ist kube-state-metrics [20]. Es holt sich ebenfalls aus der Kubernetes API Informationen über vorhandene Objekte und generiert daraus neue Metriken, die es in Prometheus kompatiblem Format bereitstellt [22]. Das damit komplette Monitoring im Kubernetes Dashboard zeigt Abbildung 4.
 @LI:
 kubectl create -f 08-kube-state-metrics-deployment.yml
 deployment "kube-state-metrics" created
