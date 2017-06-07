@@ -15,8 +15,11 @@
 
 @ZT:Entdeckt
 
-@L:Bei der Konfiguration von Prometheus orientieren wir uns dabei am offiziellen Beispiel [2]. Zur Abfrage von Metriken aus der Kubernetes API genügt beispielsweise dieser Teil:
+@L:Bei der Konfiguration von Prometheus orientieren wir uns dabei am offiziellen Beispiel [2]. Mit den Angaben aus [Listing 1] beispielsweise landen bereits eine ganz Menge an Metriken aus der Kubernetes API in Prometheus, wie in Abbildung 1 gezeigt.
+
+@KT:Listing 1: Teil der Kubernetes Service-Discovery
 @LI:
+[...]
 - job_name: 'kubernetes-apiservers'
    kubernetes_sd_configs:
      - role: endpoints
@@ -25,8 +28,8 @@
      ca_file: /.../serviceaccount/ca.crt
      insecure_skip_verify: true
    bearer_token_file: /.../serviceaccount/token
-
-@L:Und schon landen durch die Service Discovery in Prometheus eine Menge von Metriken wie in Abbildung 1 gezeigt.
+[...]
+@KE:
 
 @Bi:001_api_metrics.png
 @B:Abbildung 1: Kubernetes API Metriken
@@ -35,8 +38,11 @@
 
 @L:Größter Vorteil von Prometheus im Zusammenspiel mit Kubernetes ist aber die Unterstützung von "Labels". Labels sind in Kubernetes die einzige Möglichkeit, gezielt auf Pods, Services und andere Objekte zuzugreifen oder zu identifizieren. Es ist deshalb enorm wichtig, dass Prometheus diese Labels erkennt und beibehält. Seine Service Discovery ist so ausgelegt, dass diese Informationen in sogenannten Meta Labels abgelegt werden. Diese können dann mit "Relabeling" Regeln in endgültige Prometheus Labels umgewandelt werden. Die Meta Labels werden nach der automatischen Erzeugung der Überwachungsziele verworfen und nicht mit gespeichert.
 
-@L:Relabeling wird in beispielsweise im Blog von Brian Brazil [3] näher beschrieben. Regeln können beispielsweise so aussehen:
+@L:Relabeling wird in beispielsweise im Blog von Brian Brazil [3] näher beschrieben. Regeln können beispielsweise so aussehen wie in [Listing 2].
+
+@KT:Listing 2: Relabeling Regeln
 @LI:
+[...]
 - action: labelmap
   regex: __meta_kubernetes_service_label_(.+)
 - source_labels: [__meta_kubernetes_namespace]
@@ -45,17 +51,22 @@
 - source_labels: [__meta_kubernetes_service_name]
   action: replace
   target_label: kubernetes_name
+[...]
+@KE:
 
 @L:Damit stehen in Prometheus schließlich dieselben Labels zur Verfügung, die man in Kubernetes seinen Nodes, Applikationen und Services zugeordnet hat. Mit Hilfe der mächtigen Abfragesprache Prom QL [4] können schließlich anhand dieser Labels Graphen oder Alarme definiert werden. Darauf wollen wir im Rahmen dieses Artikel aber nicht genauer eingehen.
 
-@L:Beispielsweise sind diese Labels in Kubernetes definiert:
+@KT:Listing 3: Labels in Kubernetes
 @LI:
+[...]
 metadata:
   labels:
     app: myapp
     mylabel: myvalue
+[...]
+@KE:
 
-@L:Eine daraus resultierende Prometheus-Metrik "erbt" diese:
+@L:Sind beispielsweise in Kubernetes Label wie in [Listing 3] definiert, "erbt" die daraus resultierende Prometheus-Metrik diese:
 @LI:
 my_app_metric{app="myapp",mylabel="myvalue",...}
 
@@ -80,11 +91,13 @@ minikube service --namespace=monitoring --url prometheus
 
 @L:Alle für diesen Artikel benötigten Dateien können als Archiv von [10] heruntergeladen und in einem Arbeitsverzeichnis entpackt werden. Es empfiehlt sich, vor allem die Dateien mit den Kubernetes-Definitionen (<C>*.yml<C>) genauer anzusehen, da hier im Artikel wenn überhaupt nur Ausschnitte daraus abgedruckt werden können.
 
+@L:Diese Kubernetes-Definitionen, beispielsweise <C>01-monitoring-namespace.yml<C>, "senden" wir später mit Hilfe des Programms <C>kubectl<C> an Kubernetes, das die Inhalte dann intern speichert und enstprechende Objekte wie Namespaces, Deployments oder Services daraus erzeugt.
+
 @L:Die folgenden Schritte sind auf Minikube zugeschnitten, deshalb werden weiterführende Themen wie persistente Speicherung oder die mit Kubernetes 1.6 eingeführte "role based access control" (RBAC) hier nicht behandelt. Prometheus kann aber auch damit eingesetzt werden [11].
 
 @ZT:Los geht's
 
-@L:Zur logischen Trennung von verschiedenen Komponenten verwendet man in Kubernetes die "Namespaces". Für unser Projekt erzeugen wir den Kubernetes <C>Namespace<C> "monitoring":
+@L:Zur Trennung von Ressourcen verschiedener Nutzer in logisch benannte Gruppen kann man in Kubernetes die "Namespaces" verwenden. Hiermit lassen sich auch Namenskonflikte bei der Bezeichnung von Objekten vermeiden. Für unser Projekt erzeugen wir den Kubernetes <C>Namespace<C> "monitoring":
 @LI:
 $ kubectl create -f 01-monitoring-namespace.yml
 namespace "monitoring" created
@@ -94,17 +107,17 @@ namespace "monitoring" created
 @Bi:002_minikube_dashboard.png
 @B:Abbildung 2: Minikube Dashboard
 
-@L:Im nächsten Schritt kümmern wir uns auch schon um Prometheus. Prometheus gibt es als offizielles Docker Image [12], was aber natürlich noch keinerlei Konfiguration enthält. Um zu vermeiden, dass wir bei jeder Änderung ein neues Docker Image bauen müssen, stecken wir diese Informationen in eine Kubernetes <C>ConfigMap<C> [13]. Die <C>ConfigMap<C> kann nun unabhängig geändert, gelöscht oder neu angelegt werden.
+@L:Im nächsten Schritt kümmern wir uns auch schon um Prometheus. Prometheus gibt es als offizielles Docker Image [12], was aber natürlich noch keinerlei Konfiguration enthält. Um zu vermeiden, dass wir bei jeder Änderung ein neues Docker Image bauen müssen, stecken wir diese Informationen in eine Kubernetes <C>ConfigMap<C> [13] mit dem Namen "prometheus-configmap". Die <C>ConfigMap<C> kann nun unabhängig geändert, gelöscht oder neu angelegt werden.
 @LI:
 $ kubectl create -f 02-prometheus-configmap.yml
 configmap "prometheus-configmap" created
 
-@L:Im Kubernetes <C>Deployment<C> für Prometheus [Listing 1] binden wir die gerade angelegte <C>ConfigMap<C> als <C>Volume<C> am <C>VolumeMount<C> <C>/etc/prometheus/prometheus.yml<C> ein. Damit stellen wir die Verbindung zwischen Prometheus und seiner Konfiguration her.
+@L:Im Kubernetes <C>Deployment<C> für Prometheus [Listing 4] binden wir die gerade angelegte <C>ConfigMap<C> als <C>Volume<C> am <C>VolumeMount<C> <C>/etc/prometheus/prometheus.yml<C> ein. Damit stellen wir die Verbindung zwischen Prometheus und seiner Konfiguration her.
 @LI:
 $ kubectl create -f 03-prometheus-deployment.yml
 deployment "prometheus" created
 
-@KT:Listing 1: Das Prometheus Deployment
+@KT:Listing 4: Das Prometheus Deployment
 @LI:
 apiVersion: apps/v1beta1
 kind: Deployment
@@ -148,20 +161,28 @@ spec:
 $ kubectl create -f 04-prometheus-service.yml
 service "prometheus" created
 
-@L:Ein kleiner Hinweis: Services werden manchmal in Minikube als "pending" angezeigt, funktionieren aber dennoch:
+@L:Ein kleiner Hinweis: Services werden manchmal in Minikube wie in [Listing 5] als "pending" angezeigt, funktionieren aber dennoch.
+
+@KT:Listing 5: "Pending" Services in Minikube
 @LI:
 $ kubectl get service --namespace=monitoring
 NAME         CLUSTER-IP   EXTERNAL-IP   PORT(S)          AGE
 prometheus   10.0.0.221   <pending>     9090:31244/TCP   1m
+@KE:
 
 @ZT:Ausschau halten
 
-@L:Anwendungen, die Metriken im Prometheus Format bereitstellen, können auch quasi automatisch gefunden werden. Dafür müssen sie mit bestimmten "Annotations" versehen werden. Diese sind auch im offiziellen Beispiel [2] näher beschrieben.
+@L:Anwendungen, die Metriken im Prometheus Format bereitstellen, können auch quasi automatisch gefunden werden. Dafür müssen sie mit bestimmten "Annotations" wie in [Listing 6] versehen werden. Diese sind auch im offiziellen Beispiel [2] näher beschrieben.
+
+@KT:Listing 6: Annotations für Prometheus
 @LI:
+[...]
 metadata:
   annotations:
     prometheus.io/scrape: 'true'
     prometheus.io/port: '9100'
+[...]
+@KE:
 
 @L:Dies machen wir uns bei der nächsten Komponente zu Nutze: dem node-exporter [14]. Mit seiner Hilfe ermitteln wir Informationen über die Cluster Knoten wie Speichernutzung, Netwerkdurchsatz oder CPU-Auslastung. Damit man sich nicht selber darum kümmern muss, dass er auf jedem Knoten läuft, wird er als <C>DaemonSet<C> im gestartet. Ein <C>DaemonSet<C> [15] stellt sicher, dass auf jedem Knoten eine Instanz des node-exporter gestartet ist: sobald ein Knoten dazukommt, startet Kubernetes dort automatisch eine neue Instanz.
 
@@ -175,20 +196,23 @@ daemonset "node-exporter" created
 securityContext:
   privileged: true
 
-@L:Damit kann die node-exporter Instanz dann auf Ressourcen des Hosts zugreifen und beispielsweise das <C>/proc<C> Dateisystem des Hosts lesen:
+@L:Damit kann die node-exporter Instanz dann auf Ressourcen des Hosts zugreifen und beispielsweise das <C>/proc<C> Dateisystem des Hosts lesen. [Listing 7] zeigt die Konfigurationseinstellungen, die ohne privilegierten Zugriff nicht funktionieren würden.
+
+@KT:Listing 7: Erweiterte Einstellungen
 @LI:
+[...]
 hostPID: true
 hostIPC: true
 hostNetwork: true
-...
   volumeMounts:
     - name: proc
       mountPath: /host/proc
-...
 volumes:
   - name: proc
     hostPath:
       path: /proc
+[...]
+@KE:
 
 @ZT:Am Ziel
 
@@ -197,7 +221,9 @@ volumes:
 $ minikube service prometheus --namespace=monitoring
 Opening kubernetes service monitoring/prometheus in default browser...
 
-@L:Damit wir auch einen schönen Überblick über unseren Kubernetes Cluster bekommen, installieren wir im letzten Schritt noch Grafana [16].
+@L:Damit wir auch einen schönen Überblick über unseren Kubernetes Cluster bekommen, installieren wir im letzten Schritt noch Grafana [16] wie [Listing 8] zeigt.
+
+@KT:Listing 8: Installation von Grafana
 @LI:
 $ kubectl create -f 06-grafana-deployment.yml
 deployment "grafana" created
@@ -205,6 +231,7 @@ $ kubectl create -f 07-grafana-service.yml
 service "grafana" created
 $ minikube service grafana --namespace=monitoring
 Opening kubernetes service monitoring/grafana in default browser...
+@KE:
 
 @L:Um die Einrichtung von Grafana zu vereinfachen, habe ich ein kleines Skript erstellt, das eine Datenquelle für Prometheus anlegt und zwei gute Dashboards für Kubernetes [17, 18] importiert:
 @LI:
@@ -219,12 +246,15 @@ $ ./configure_grafana.sh
 
 @ZT:Was noch?
 
-@L:Aktuell haben wir schon eine Menge an Informationen über unseren Kubernetes Cluster gesammelt, aber da geht noch mehr: ein interessantes Unterprojekt von Kubernetes ist kube-state-metrics [20]. Es holt sich ebenfalls aus der Kubernetes API Informationen über vorhandene Objekte und generiert daraus neue Metriken, die es in Prometheus kompatiblem Format bereitstellt [22]. Das damit komplette Monitoring im Kubernetes Dashboard zeigt Abbildung 4.
+@L:Aktuell haben wir schon eine Menge an Informationen über unseren Kubernetes Cluster gesammelt, aber da geht noch mehr: ein interessantes Unterprojekt von Kubernetes ist kube-state-metrics [20]. Es holt sich ebenfalls aus der Kubernetes API Informationen über vorhandene Objekte und generiert daraus neue Metriken, die es in Prometheus kompatiblem Format bereitstellt [22]. Es liefert dem Administrator etwa Hinweise, ob Nodes "unschedulable" sind oder ob Pods abgebrochen wurden. Mit den Kommandos aus [Listing 9] komplettieren wir unser Demo, dessen Dashboard in Abbildung 4 zu sehen ist.
+
+@KT:Listing 9: Installation von kube-state-metrics
 @LI:
-kubectl create -f 08-kube-state-metrics-deployment.yml
+$ kubectl create -f 08-kube-state-metrics-deployment.yml
 deployment "kube-state-metrics" created
-kubectl create -f 09-kube-state-metrics-service.yml
+$ kubectl create -f 09-kube-state-metrics-service.yml
 service "kube-state-metrics" created
+@KE:
 
 @Bi:004_monitoring.png
 @B:Abbildung 4: Das komplette Monitoring in Minikube
