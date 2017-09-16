@@ -13,7 +13,7 @@ spec:
         app: prometheus
     spec:
       containers:
-      - image: prom/prometheus:v1.6.3
+      - image: prom/prometheus:v1.7.1
         name: prometheus
         args:
           - -config.file=/etc/prometheus/prometheus.yml
